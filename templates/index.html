@@ -4,316 +4,447 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AI Resume Screener</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #07010f;
+      --card: #0d0520;
+      --border: #2a1040;
+      --purple: #9b1dca;
+      --magenta: #e91e8c;
+      --cyan: #00e5ff;
+      --text: #f0e8ff;
+      --muted: #9980bb;
+    }
 
     body {
-      font-family: 'Courier New', monospace;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
       min-height: 100vh;
-      background: #000;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 24px;
-      overflow: auto;
+      padding: 0 16px 80px;
+      overflow-x: hidden;
     }
 
-    canvas#bg {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 0;
+    /* ── STARS ── */
+    #stars {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 0;
+      overflow: hidden;
     }
-
-    .terminal {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: 520px;
-      text-align: center;
-      color: #00ff41;
+    .star {
+      position: absolute; border-radius: 50%;
+      background: #fff;
+      animation: twinkle 3s infinite;
     }
+    @keyframes twinkle { 0%,100%{opacity:.12} 50%{opacity:.9} }
 
-    .status {
-      font-size: 11px;
-      letter-spacing: 3px;
-      color: #00ff4177;
-      margin-bottom: 8px;
+    /* ── ORBS ── */
+    .orb {
+      position: fixed; border-radius: 50%;
+      pointer-events: none; z-index: 0;
+      animation: floatorb 9s ease-in-out infinite;
     }
+    .o1 { width:500px;height:500px;background:radial-gradient(circle,#9b1dca77,transparent 70%);top:-180px;left:-120px; }
+    .o2 { width:380px;height:380px;background:radial-gradient(circle,#00e5ff44,transparent 70%);top:100px;right:-100px;animation-delay:3s; }
+    .o3 { width:420px;height:420px;background:radial-gradient(circle,#e91e8c33,transparent 70%);bottom:-120px;left:35%;animation-delay:6s; }
+    @keyframes floatorb { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-28px) scale(1.04)} }
 
-    .logo { font-size: 3rem; margin-bottom: 8px; }
+    .wrapper { width:100%; max-width:680px; position:relative; z-index:1; }
 
-    h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #00ff41;
-      letter-spacing: 3px;
-      text-shadow: 0 0 20px #00ff4166;
-      margin-bottom: 6px;
+    /* ── HERO ── */
+    .hero { text-align:center; padding:70px 0 44px; }
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 16px; border-radius:100px;
+      border:1px solid #9b1dca55;
+      background:#9b1dca14;
+      font-size:11px; font-weight:600; color:#d580ff;
+      letter-spacing:1px; text-transform:uppercase; margin-bottom:22px;
     }
-
-    .version {
-      font-size: 11px;
-      color: #00ff4144;
-      letter-spacing: 2px;
-      margin-bottom: 24px;
+    .pulse-dot { width:8px;height:8px;border-radius:50%;background:var(--cyan);animation:twinkle 1.5s infinite; }
+    h1 { font-size:clamp(2.4rem,7vw,3.8rem); font-weight:700; line-height:1.1; letter-spacing:-2px; margin-bottom:14px; }
+    .line1 { display:block; color:var(--text); }
+    .line2 {
+      display:block;
+      background:linear-gradient(90deg, var(--purple), var(--magenta), var(--cyan), var(--purple));
+      background-size:300%;
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+      animation:shimmer 5s linear infinite;
     }
+    @keyframes shimmer { 0%{background-position:0%} 100%{background-position:300%} }
+    .hero p { color:var(--muted); font-size:1rem; max-width:440px; margin:0 auto; line-height:1.65; }
 
-    .roles-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      justify-content: center;
-      margin-bottom: 24px;
+    /* ── CHIPS ── */
+    .chips { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:28px; }
+    .chip {
+      padding:3px 11px; border-radius:20px; font-size:10px; font-weight:600;
+      letter-spacing:.5px; border:1px solid #e040fb33; background:#e040fb0d; color:#d580ff;
     }
+    .chip.c { border-color:#00e5ff33; background:#00e5ff0d; color:var(--cyan); }
 
-    .role-chip {
-      background: rgba(0,255,65,0.06);
-      border: 1px solid rgba(0,255,65,0.2);
-      border-radius: 4px;
-      padding: 3px 10px;
-      font-size: 10px;
-      color: rgba(0,255,65,0.6);
-      letter-spacing: 1px;
+    /* ── UPLOAD CARD ── */
+    .upload-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:24px; padding:32px; margin-bottom:24px;
+      position:relative; overflow:hidden;
     }
-
-    .upload-zone {
-      border: 1px solid rgba(0,255,65,0.3);
-      border-radius: 8px;
-      padding: 32px 20px;
-      cursor: pointer;
-      transition: all 0.3s;
-      margin-bottom: 14px;
-      position: relative;
-      background: rgba(0,255,65,0.04);
+    .upload-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:1px;
+      background:linear-gradient(90deg,transparent,var(--purple),var(--magenta),var(--cyan),transparent);
     }
-
-    .upload-zone:hover {
-      border-color: #00ff41;
-      background: rgba(0,255,65,0.08);
-      box-shadow: 0 0 20px rgba(0,255,65,0.15);
+    .upload-label {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      border:2px dashed #9b1dca44; border-radius:16px; padding:44px 24px;
+      cursor:pointer; transition:all .3s;
+      background:linear-gradient(135deg,#9b1dca08,#00e5ff05);
     }
-
-    .upload-zone input[type="file"] {
-      position: absolute; inset: 0;
-      opacity: 0; cursor: pointer;
-      width: 100%; height: 100%;
+    .upload-label:hover { border-color:var(--purple); background:#9b1dca10; transform:translateY(-2px); }
+    .upload-label.dragover { border-color:var(--cyan); background:#00e5ff0d; }
+    .upload-label input { display:none; }
+    .up-icon {
+      width:68px; height:68px; border-radius:18px;
+      background:linear-gradient(135deg,#9b1dca30,#e91e8c20);
+      border:1px solid #e040fb40;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.9rem; margin-bottom:14px; transition:transform .3s;
     }
-
-    .upload-icon { font-size: 2.2rem; margin-bottom: 10px; }
-
-    .upload-title {
-      font-size: 13px;
-      color: #00ff41;
-      letter-spacing: 2px;
-      margin-bottom: 4px;
-    }
-
-    .upload-sub {
-      font-size: 11px;
-      color: rgba(0,255,65,0.4);
-      letter-spacing: 1px;
-    }
-
+    .upload-label:hover .up-icon { transform:scale(1.1) rotate(-5deg); }
+    .upload-label h3 { font-size:1rem; font-weight:600; margin-bottom:5px; }
+    .upload-label p { font-size:0.83rem; color:var(--muted); }
     #file-name {
-      margin-top: 12px;
-      font-size: 12px;
-      color: #00ff41;
-      font-weight: 700;
-      min-height: 18px;
-      letter-spacing: 1px;
+      margin-top:13px; padding:7px 16px; border-radius:100px;
+      background:#00e5ff12; border:1px solid #00e5ff33;
+      color:var(--cyan); font-size:0.82rem; font-weight:600; display:none;
+    }
+    .analyze-btn {
+      width:100%; margin-top:18px; padding:16px; border:none; border-radius:14px;
+      background:linear-gradient(135deg,var(--purple),var(--magenta));
+      color:#fff; font-family:'Space Grotesk',sans-serif;
+      font-size:1rem; font-weight:700; cursor:pointer;
+      transition:transform .2s, box-shadow .2s;
+      box-shadow:0 8px 32px #9b1dca44; letter-spacing:.5px;
+    }
+    .analyze-btn:hover { transform:translateY(-2px); box-shadow:0 12px 40px #e91e8c44; }
+
+    /* ── LOADING ── */
+    #loadingOverlay {
+      display:none; position:fixed; inset:0; z-index:999;
+      background:rgba(7,1,15,0.93); backdrop-filter:blur(14px);
+      flex-direction:column; align-items:center; justify-content:center;
+    }
+    #loadingOverlay.active { display:flex; }
+    .loader-box {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:28px; padding:44px 52px; text-align:center;
+      max-width:420px; width:90%; position:relative; overflow:hidden;
+      animation:popIn .4s cubic-bezier(.16,1,.3,1);
+    }
+    @keyframes popIn { from{opacity:0;transform:scale(.85) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .loader-box::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:2px;
+      background:linear-gradient(90deg,var(--purple),var(--magenta),var(--cyan),var(--purple));
+      background-size:300%; animation:shimmer 2s linear infinite;
+    }
+    .spinner-wrap { width:86px;height:86px;margin:0 auto 26px;position:relative; }
+    .spinner-ring {
+      position:absolute; inset:0; border-radius:50%;
+      border:3px solid transparent; animation:spin 1.4s linear infinite;
+    }
+    .spinner-ring:nth-child(1) { border-top-color:var(--purple);border-right-color:var(--purple); }
+    .spinner-ring:nth-child(2) { inset:10px;border-bottom-color:var(--magenta);border-left-color:var(--magenta);animation-duration:1s;animation-direction:reverse; }
+    .spinner-ring:nth-child(3) { inset:20px;border-top-color:var(--cyan);border-right-color:var(--cyan);animation-duration:.7s; }
+    .spinner-center {
+      position:absolute; inset:30px; border-radius:50%;
+      background:linear-gradient(135deg,#9b1dca30,#e91e8c20);
+      display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+      animation:pulse2 1.4s ease-in-out infinite;
+    }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    @keyframes pulse2 { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+    .loader-title { font-size:1.25rem;font-weight:700;margin-bottom:6px; }
+    .loader-subtitle { font-size:0.83rem;color:var(--muted);margin-bottom:28px; }
+    .steps { display:flex;flex-direction:column;gap:10px;text-align:left; }
+    .step {
+      display:flex; align-items:center; gap:12px; padding:11px 14px;
+      border-radius:12px; border:1px solid var(--border);
+      background:rgba(255,255,255,.02); transition:all .4s; opacity:.3;
+    }
+    .step.active { opacity:1;border-color:#9b1dca44;background:#9b1dca0d;transform:translateX(4px); }
+    .step.done { opacity:.65;border-color:#00e5ff30;background:#00e5ff07; }
+    .step-icon {
+      width:34px;height:34px;border-radius:9px;flex-shrink:0;
+      background:rgba(255,255,255,.04);border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;font-size:.95rem;transition:all .3s;
+    }
+    .step.active .step-icon { background:#9b1dca20;border-color:#9b1dca44; }
+    .step.done .step-icon { background:#00e5ff18;border-color:#00e5ff40; }
+    .step-label { font-size:.86rem;font-weight:600; }
+    .step-desc { font-size:.73rem;color:var(--muted);margin-top:2px; }
+    .step-check { font-size:.95rem;opacity:0;transition:opacity .3s; }
+    .step.done .step-check { opacity:1; }
+    .progress-wrap { margin-top:22px; }
+    .progress-label { display:flex;justify-content:space-between;font-size:.73rem;color:var(--muted);margin-bottom:7px; }
+    .progress-bar-bg { height:4px;background:var(--border);border-radius:100px;overflow:hidden; }
+    .progress-bar-fill {
+      height:100%;
+      background:linear-gradient(90deg,var(--purple),var(--magenta),var(--cyan));
+      border-radius:100px; width:0%; transition:width .6s cubic-bezier(.4,0,.2,1);
     }
 
-    .btn {
-      width: 100%;
-      padding: 15px;
-      border: none;
-      border-radius: 6px;
-      background: #00ff41;
-      color: #000;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 3px;
-      transition: all 0.2s;
-      margin-bottom: 20px;
+    /* ── RESULT ── */
+    .result-card {
+      background:var(--card); border:1px solid #e040fb33;
+      border-radius:24px; padding:32px; margin-bottom:22px;
+      position:relative; overflow:hidden;
+      animation:fadeUp .6s cubic-bezier(.16,1,.3,1);
     }
-
-    .btn:hover {
-      background: #00cc33;
-      box-shadow: 0 0 30px rgba(0,255,65,0.5);
-      transform: translateY(-1px);
+    .result-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:1px;
+      background:linear-gradient(90deg,transparent,var(--purple),var(--magenta),transparent);
     }
-
-    .result {
-      border: 1px solid rgba(0,255,65,0.4);
-      border-radius: 8px;
-      padding: 24px 20px;
-      background: rgba(0,255,65,0.05);
-      text-align: left;
-      animation: flicker 0.3s ease;
+    .result-card-bg {
+      position:absolute; inset:0;
+      background:radial-gradient(ellipse at top left,#9b1dca12,transparent 60%),
+                 radial-gradient(ellipse at bottom right,#e91e8c0a,transparent 60%);
+      pointer-events:none;
     }
-
-    @keyframes flicker {
-      0%   { opacity: 0; }
-      50%  { opacity: 0.5; }
-      100% { opacity: 1; }
+    .result-inner { position:relative;z-index:1; }
+    .eyebrow { font-size:.7rem;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:14px; }
+    .role-row { display:flex;align-items:center;gap:14px;margin-bottom:14px; }
+    .role-icon {
+      width:62px;height:62px;border-radius:16px;
+      background:linear-gradient(135deg,#9b1dca28,#e91e8c18);
+      border:1px solid #e040fb40;
+      display:flex;align-items:center;justify-content:center;font-size:1.75rem;flex-shrink:0;
     }
-
-    .result-comment {
-      font-size: 11px;
-      color: rgba(0,255,65,0.35);
-      letter-spacing: 2px;
-      margin-bottom: 10px;
-    }
-
-    .result-line {
-      font-size: 12px;
-      color: rgba(0,255,65,0.6);
-      margin-bottom: 5px;
-      letter-spacing: 1px;
-    }
-
-    .result-icon {
-      font-size: 2.4rem;
-      margin: 12px 0 6px;
-      text-align: center;
-    }
-
-    .result-label {
-      font-size: 11px;
-      color: rgba(0,255,65,0.45);
-      letter-spacing: 2px;
-      margin-bottom: 6px;
-    }
-
-    .result-role {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #00ff41;
-      letter-spacing: 2px;
-      text-shadow: 0 0 20px rgba(0,255,65,0.5);
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
+    .role-name { font-size:clamp(1.7rem,5vw,2.5rem);font-weight:800;letter-spacing:-1px; }
     .broad-tag {
-      display: block;
-      text-align: center;
-      font-size: 10px;
-      color: rgba(0,255,65,0.35);
-      letter-spacing: 2px;
-      margin-top: 6px;
+      display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:100px;
+      background:#00e5ff10;border:1px solid #00e5ff30;
+      font-size:.73rem;color:var(--cyan);font-weight:600;letter-spacing:.5px;
     }
 
-    .footer {
-      margin-top: 20px;
-      font-size: 10px;
-      color: rgba(0,255,65,0.2);
-      letter-spacing: 1px;
+    /* ── WHY CARD ── */
+    .why-card {
+      background:var(--card); border:1px solid #00e5ff22;
+      border-radius:24px; padding:32px; margin-bottom:22px;
+      position:relative; overflow:hidden;
+      animation:fadeUp .7s cubic-bezier(.16,1,.3,1);
     }
+    .why-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:1px;
+      background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+    }
+    .why-card-bg {
+      position:absolute; inset:0;
+      background:radial-gradient(ellipse at top right,#00e5ff08,transparent 60%);
+      pointer-events:none;
+    }
+    .why-inner { position:relative;z-index:1; }
+    .sec-label {
+      display:flex;align-items:center;gap:9px;
+      font-size:.7rem;text-transform:uppercase;letter-spacing:3px;
+      color:var(--cyan);font-weight:700;margin-bottom:18px;
+    }
+    .sec-icon {
+      width:27px;height:27px;border-radius:8px;
+      background:#00e5ff14;border:1px solid #00e5ff30;
+      display:flex;align-items:center;justify-content:center;font-size:.82rem;
+    }
+    .exp-text { color:#b0a0cc;line-height:1.85;font-size:.96rem; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+
+    .footer { text-align:center;margin-top:20px;font-size:.75rem;color:#3a2555; }
   </style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
 
-  <div class="terminal">
-    <div class="status">[ SYSTEM ONLINE ]</div>
-    <div class="logo">🤖</div>
-    <h1>AI RESUME SCREENER</h1>
-    <div class="version">NEURAL NETWORK v2.4 · TF-IDF + LinearSVC · 2484 RESUMES</div>
+<div id="stars"></div>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+<div class="orb o3"></div>
 
-    <div class="roles-wrap">
-      {% for role in [
-        "PYTHON_DEV","JAVA_DEV","FULLSTACK","FRONTEND","BACKEND",
-        "ML_ENGINEER","DATA_SCIENTIST","DATA_ANALYST","DEVOPS",
-        "CLOUD_ENG","CYBERSECURITY","ANDROID_DEV","UI/UX",
-        "SOFTWARE_ENG","AI_ENGINEER","HR","FINANCE","HEALTHCARE","TEACHER","ACCOUNTANT"
-      ] %}
-      <span class="role-chip">{{ role }}</span>
-      {% endfor %}
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="loader-box">
+    <div class="spinner-wrap">
+      <div class="spinner-ring"></div>
+      <div class="spinner-ring"></div>
+      <div class="spinner-ring"></div>
+      <div class="spinner-center">🧠</div>
     </div>
-
-    <form action="/predict" method="POST" enctype="multipart/form-data">
-      <div class="upload-zone">
-        <input type="file" name="resume" accept=".pdf"
-               onchange="document.getElementById('file-name').textContent = (this.files[0]?.name || '') + (this.files[0] ? ' ✓' : '')"/>
-        <div class="upload-icon">📄</div>
-        <div class="upload-title">DROP_RESUME.PDF</div>
-        <div class="upload-sub">OR CLICK TO BROWSE</div>
-        <div id="file-name"></div>
+    <div class="loader-title">Analyzing Your Resume</div>
+    <div class="loader-subtitle">Galaxy AI is reviewing your experience...</div>
+    <div class="steps">
+      <div class="step" id="step1">
+        <div class="step-icon">📄</div>
+        <div class="step-text">
+          <div class="step-label">Reading Resume</div>
+          <div class="step-desc">Extracting text from your PDF</div>
+        </div>
+        <div class="step-check">✅</div>
       </div>
-      <button type="submit" class="btn">&gt;_ ANALYZE RESUME</button>
-    </form>
-
-    {% if prediction %}
-    <div class="result">
-      <div class="result-comment">// PREDICTION OUTPUT</div>
-      <div class="result-line">&gt; scanning resume........... done</div>
-      <div class="result-line">&gt; extracting features........ done</div>
-      <div class="result-line">&gt; running ML model........... done</div>
-      <div class="result-icon">{{ icon }}</div>
-      <div class="result-label">BEST_MATCH =</div>
-      <div class="result-role">{{ prediction }}</div>
-      {% if broad %}
-      <div class="broad-tag">CATEGORY :: {{ broad }}</div>
-      {% endif %}
+      <div class="step" id="step2">
+        <div class="step-icon">🔍</div>
+        <div class="step-text">
+          <div class="step-label">Scanning Skills</div>
+          <div class="step-desc">Identifying keywords and technologies</div>
+        </div>
+        <div class="step-check">✅</div>
+      </div>
+      <div class="step" id="step3">
+        <div class="step-icon">⚡</div>
+        <div class="step-text">
+          <div class="step-label">Running ML Model</div>
+          <div class="step-desc">Classifying your job category</div>
+        </div>
+        <div class="step-check">✅</div>
+      </div>
+      <div class="step" id="step4">
+        <div class="step-icon">✨</div>
+        <div class="step-text">
+          <div class="step-label">Generating Explanation</div>
+          <div class="step-desc">AI crafting your personalized insight</div>
+        </div>
+        <div class="step-check">✅</div>
+      </div>
     </div>
-    {% endif %}
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progressText">Starting...</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <div class="footer">POWERED BY ML · TRAINED ON REAL RESUME DATA · 2026</div>
+<!-- MAIN -->
+<div class="wrapper">
+  <div class="hero">
+    <div class="hero-badge"><span class="pulse-dot"></span>AI Powered · Free · Instant</div>
+    <h1>
+      <span class="line1">Know Your Role.</span>
+      <span class="line2">Instantly.</span>
+    </h1>
+    <p>Upload your resume and our Galaxy AI predicts your best-fit career role — and explains exactly why.</p>
   </div>
 
-  <script>
-    const canvas = document.getElementById('bg');
-    const ctx = canvas.getContext('2d');
+  <div class="chips">
+    {% for role in ["PYTHON_DEV","JAVA_DEV","FULLSTACK","FRONTEND","BACKEND","ML_ENGINEER","DATA_SCIENTIST","DATA_ANALYST","DEVOPS","CLOUD_ENG","CYBERSECURITY","ANDROID_DEV","UI/UX","SOFTWARE_ENG","AI_ENGINEER","HR","FINANCE","HEALTHCARE","TEACHER","ACCOUNTANT"] %}
+    <span class="chip {% if loop.index is even %}c{% endif %}">{{ role }}</span>
+    {% endfor %}
+  </div>
 
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+  <div class="upload-card">
+    <form method="POST" action="/predict" enctype="multipart/form-data" id="uploadForm">
+      <label class="upload-label" for="resumeFile" id="dropZone">
+        <input type="file" name="resume" id="resumeFile" accept=".pdf" onchange="showFileName(this)"/>
+        <div class="up-icon">📄</div>
+        <h3>Click or drag & drop your resume</h3>
+        <p>PDF files only · Max 10MB</p>
+        <div id="file-name"></div>
+      </label>
+      <button type="submit" class="analyze-btn">🔍 &nbsp; Analyze My Resume</button>
+    </form>
+  </div>
+
+  {% if prediction %}
+  <div class="result-card">
+    <div class="result-card-bg"></div>
+    <div class="result-inner">
+      <div class="eyebrow">Predicted Role</div>
+      <div class="role-row">
+        <div class="role-icon">{{ icon }}</div>
+        <div class="role-name">{{ prediction }}</div>
+      </div>
+      {% if broad %}<span class="broad-tag">⚡ {{ broad }}</span>{% endif %}
+    </div>
+  </div>
+
+  {% if explanation %}
+  <div class="why-card">
+    <div class="why-card-bg"></div>
+    <div class="why-inner">
+      <div class="sec-label"><div class="sec-icon">✨</div>Why You Got This Result</div>
+      <p class="exp-text">{{ explanation }}</p>
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <div class="footer">Powered by ML · TF-IDF + LinearSVC · Trained on 2484 resumes · Galaxy AI</div>
+</div>
+
+<script>
+  const s = document.getElementById('stars');
+  for(let i=0;i<80;i++){
+    const d=document.createElement('div');
+    d.className='star';
+    const sz=Math.random()*2+.5;
+    d.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*4}s;animation-duration:${2+Math.random()*4}s;`;
+    s.appendChild(d);
+  }
+
+  function showFileName(input){
+    const el=document.getElementById('file-name');
+    const name=input.files[0]?.name||'';
+    if(name){el.textContent='✅ '+name;el.style.display='inline-block';}
+    else{el.style.display='none';}
+  }
+
+  const dropZone=document.getElementById('dropZone');
+  const fileInput=document.getElementById('resumeFile');
+  dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
+  dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop',e=>{
+    e.preventDefault();dropZone.classList.remove('dragover');
+    const file=e.dataTransfer.files[0];
+    if(file&&file.type==='application/pdf'){
+      const dt=new DataTransfer();dt.items.add(file);fileInput.files=dt.files;showFileName(fileInput);
     }
-    resize();
-    window.addEventListener('resize', resize);
+  });
 
-    const particles = Array.from({length: 80}, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 1.5 + 0.3,
-      dx: (Math.random() - 0.5) * 0.4,
-      dy: (Math.random() - 0.5) * 0.4,
-      alpha: Math.random() * 0.5 + 0.15
-    }));
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach(p => {
-        p.x += p.dx; p.y += p.dy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0,255,65,${p.alpha})`;
-        ctx.fill();
-      });
-      particles.forEach((p, i) => {
-        particles.slice(i + 1).forEach(q => {
-          const d = Math.hypot(p.x - q.x, p.y - q.y);
-          if (d < 100) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(q.x, q.y);
-            ctx.strokeStyle = `rgba(0,255,65,${0.12 * (1 - d / 100)})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        });
-      });
-      requestAnimationFrame(draw);
-    }
-    draw();
-  </script>
+  const steps=[
+    {id:'step1',label:'Reading resume...',pct:20},
+    {id:'step2',label:'Scanning skills...',pct:45},
+    {id:'step3',label:'Running ML model...',pct:72},
+    {id:'step4',label:'Generating explanation...',pct:95},
+  ];
+  function setProgress(pct,label){
+    document.getElementById('progressBar').style.width=pct+'%';
+    document.getElementById('progressPct').textContent=pct+'%';
+    document.getElementById('progressText').textContent=label;
+  }
+  function activateStep(index){
+    steps.forEach((s,i)=>{
+      const el=document.getElementById(s.id);
+      if(i<index){el.classList.remove('active');el.classList.add('done');}
+      else if(i===index){el.classList.add('active');el.classList.remove('done');}
+      else{el.classList.remove('active','done');}
+    });
+    setProgress(steps[index].pct,steps[index].label);
+  }
+  document.getElementById('uploadForm').addEventListener('submit',function(){
+    const file=document.getElementById('resumeFile').files[0];
+    if(!file)return;
+    document.getElementById('loadingOverlay').classList.add('active');
+    activateStep(0);
+    [800,1800,3200,5000].forEach((t,i)=>setTimeout(()=>activateStep(i),t));
+    setTimeout(()=>{
+      steps.forEach(s=>{const el=document.getElementById(s.id);el.classList.remove('active');el.classList.add('done');});
+      setProgress(100,'Almost done...');
+    },7000);
+  });
+</script>
 </body>
 </html>
